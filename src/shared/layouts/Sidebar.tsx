@@ -5,6 +5,7 @@ import {
 import {
   Dashboard, Description, CompareArrows, AutoGraph,
   ModelTraining, History, Settings, ChevronLeft, ChevronRight, Logout,
+  ViewModule
 } from '@mui/icons-material';
 import { useSidebar } from './hooks/useSidebar';
 
@@ -12,6 +13,7 @@ const dashboardItem = { label: '대시보드', icon: <Dashboard />, path: '/dash
 
 const mainFlowItems = [
   { label: '견적서 분석', icon: <Description />, path: '/parsing' },
+  { label: '견적서 분석(Card)', icon: <ViewModule />, path: '/parsing_card' },
   { label: '견적서 비교', icon: <CompareArrows />, path: '/comparison' },
   { label: '인사이트 스튜디오', icon: <AutoGraph />, path: '/insight' },
 ];
@@ -20,6 +22,7 @@ const subMenuItems = [
   { label: '모델관리', icon: <ModelTraining />, path: '/models' },
   { label: '이력/알림', icon: <History />, path: '/history' },
   { label: '설정', icon: <Settings />, path: '/settings' },
+  { label: '리엑트테스트용', icon: <Settings />, path: '/board' },
 ];
 
 interface SidebarProps {

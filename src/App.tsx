@@ -25,7 +25,8 @@ import { AuthProvider } from './features/auth/AuthContext';
 import { ThemeProvider } from './shared/contexts/ThemeContext';
 
 // 📊 메인 워크플로우 페이지들 (견적서 처리 4단계)
-import ParsingPage from './features/parsing/ParsingPage';               // 1단계: 파싱/업로드
+import ParsingPage from './features/parsing/ParsingPage';               // 1단계: 파싱/업로드 (테이블)
+import ParsingCardPage from './features/parsing/ParsingCardPage';       // 1단계: 파싱/업로드 (카드)
 import ParsedDataReviewPage from './features/verification/ParsedDataReviewPage'; // 2단계: 검증/리뷰
 import AnalysisPage from './features/analysis/AnalysisPage';             // 3단계: 분석
 import QuotationComparisonPage from './features/comparison/QuotationComparisonPage'; // 4단계: 비교
@@ -37,6 +38,10 @@ import ModelManagementPage from './features/model-management/ModelManagementPage
 import HistoryPage from './features/history/HistoryPage';               // 📜 작업 이력/알림
 import SettingsPage from './features/settings/SettingsPage';           // 🔧 시스템 설정
 import LoginPage from './features/auth/LoginPage';                     // 🔐 로그인 (별도 레이아웃)
+
+
+// 리엑트 테스트용
+import BoardPage from './features/board/BoardPage';                     // 🔐 로그인 (별도 레이아웃)
 
 // 🎨 테마 시스템은 ThemeProvider에서 관리됨
 // 현대모비스 테마와 Toss 테마 간 전환 가능
@@ -68,7 +73,8 @@ export default function App() {
             <Route element={<MainLayout />}>
               
               {/* 📊 핵심 워크플로우 (견적서 처리 4단계) */}
-              <Route path="/parsing" element={<ParsingPage />} />           {/* 1️⃣ 파싱/업로드 */}
+              <Route path="/parsing" element={<ParsingPage />} />           {/* 1️⃣ 파싱/업로드 (테이블) */}
+              <Route path="/parsing_card" element={<ParsingCardPage />} />  {/* 1️⃣ 파싱/업로드 (카드) */}
               <Route path="/verification" element={<ParsedDataReviewPage />} /> {/* 2️⃣ 검증/리뷰 */}
               <Route path="/analysis" element={<AnalysisPage />} />         {/* 3️⃣ 분석 */}
               <Route path="/comparison" element={<QuotationComparisonPage />} /> {/* 4️⃣ 비교 */}
@@ -83,6 +89,10 @@ export default function App() {
               {/* 🔀 기본 경로 처리 */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />    {/* 루트 → 대시보드 */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />    {/* 404 → 대시보드 */}
+           
+              {/* 리엑트 테스트용 */}
+              <Route path="/board" element={<BoardPage />} />       {/* 📈 게시판 */}
+              
             </Route>
           </Routes>
         </HashRouter>

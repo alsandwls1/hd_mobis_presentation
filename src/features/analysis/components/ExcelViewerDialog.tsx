@@ -72,11 +72,7 @@ import {
   Visibility,
   Edit as EditIcon,
   Save,
-  FileDownload,
-  Fullscreen,
-  FullscreenExit,
-  CropFree,
-  FilterList
+  FileDownload
 } from '@mui/icons-material';
 
 // 간단한 테이블 컴포넌트로 대체 (Handsontable 설치 문제 해결용)
@@ -89,6 +85,9 @@ interface ExcelViewerDialogProps {
   title?: string; // 다이얼로그 제목
   excelFile?: File; // 실제 Excel 파일
   excelUrl?: string; // Excel 파일 URL
+  // 🔧 셀 재매핑 모드
+  isRemappingMode?: boolean; // 재매핑 모드 여부
+  onCellSelect?: (cell: string, value: string | number) => void; // 셀 선택 콜백
 }
 
 interface ExcelSheet {
@@ -285,7 +284,9 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
   fileName = "HEAD_LINING_원가계산서.xlsx",
   title,
   excelFile,
-  excelUrl
+  excelUrl,
+  isRemappingMode = false,
+  onCellSelect
 }) => {
   const [zoom, setZoom] = useState(100);
   const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
@@ -322,6 +323,9 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
   const [error, setError] = useState<string>('');
   const [dialogSize, setDialogSize] = useState({ width: '90vw', height: '85vh' });
+  
+  // 🔧 재매핑 모드 상태
+  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number; cell: string; value: string | number } | null>(null);
 
   // 🗂️ 실제 Excel 파일 로드
   useEffect(() => {
@@ -419,6 +423,35 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
     }
   };
 
+  // 🎯 셀 클릭 핸들러 (재매핑 모드)
+  const handleCellClick = (rowIndex: number, colIndex: number, cellValue: string | number) => {
+    if (!isRemappingMode) return;
+    
+    const cellAddress = `${getExcelColumnHeader(colIndex)}${rowIndex + 1}`;
+    
+    setSelectedCell({
+      row: rowIndex,
+      col: colIndex,
+      cell: cellAddress,
+      value: cellValue
+    });
+    
+    console.log(`🎯 셀 선택: ${cellAddress} = ${cellValue}`);
+  };
+
+  // ✅ 선택된 셀 적용
+  const handleSaveSelectedCell = () => {
+    if (!selectedCell || !onCellSelect) return;
+    
+    onCellSelect(selectedCell.cell, selectedCell.value);
+    console.log(`✅ 셀 재매핑 적용 완료: ${selectedCell.cell} = ${selectedCell.value}`);
+    
+    // 성공 피드백 후 닫기
+    setTimeout(() => {
+      onClose();
+    }, 500);
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -451,8 +484,16 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <TableChart sx={{ color: '#4472C4' }} />
             <Typography variant="h6">
-              {title || '🚀 Excel 원본 뷰어'}
+              {title || (isRemappingMode ? '🔄 Excel 셀 재매핑' : '🚀 Excel 원본 뷰어')}
             </Typography>
+            {isRemappingMode && (
+              <Chip 
+                label="재매핑 모드" 
+                size="small" 
+                color="warning"
+                variant="filled"
+              />
+            )}
             <Chip 
               label={workbook ? workbook.fileName : fileName} 
               size="small" 
@@ -479,6 +520,14 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
                 label={`오류: ${error}`} 
                 size="small" 
                 color="error"
+              />
+            )}
+            {selectedCell && (
+              <Chip 
+                label={`선택: ${selectedCell.cell} = ${selectedCell.value}`} 
+                size="small" 
+                color="success"
+                variant="filled"
               />
             )}
           </Box>
@@ -549,16 +598,6 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
                 </Button>
               </Tooltip>
               
-              <Tooltip title="필터">
-                <Button 
-                  variant={viewMode === 'edit' ? "contained" : "outlined"} 
-                  size="small" 
-                  sx={{ minWidth: 40 }}
-                >
-                  <FilterList fontSize="small" />
-                </Button>
-              </Tooltip>
-              
               <Tooltip title="Excel 다운로드">
                 <Button 
                   variant="outlined" 
@@ -576,45 +615,32 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
                   size="small" 
                   onClick={() => window.print()}
                   sx={{ minWidth: 40 }}
+                  disabled={isRemappingMode}
                 >
                   <Print fontSize="small" />
                 </Button>
               </Tooltip>
+
+              {/* ✅ 재매핑 모드 전용 적용 버튼 */}
+              {isRemappingMode && (
+                <Tooltip title="선택한 셀로 재매핑 적용">
+                  <Button 
+                    variant="contained" 
+                    size="small"
+                    color="success"
+                    onClick={handleSaveSelectedCell}
+                    disabled={!selectedCell}
+                    startIcon={<Save fontSize="small" />}
+                    sx={{ ml: 1 }}
+                  >
+                    적용
+                  </Button>
+                </Tooltip>
+              )}
             </Box>
           )}
         
-        {/* 📐 크기 조정 버튼들 */}
-        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', ml: 1 }}>
-          <Tooltip title="작게 (70×60)">
-            <IconButton 
-              size="small"
-              onClick={() => handleSizePreset('small')}
-              sx={{ bgcolor: 'rgba(0,0,0,0.05)' }}
-            >
-              <CropFree fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          
-          <Tooltip title="보통 (85×75)">
-            <IconButton 
-              size="small"
-              onClick={() => handleSizePreset('medium')}
-              sx={{ bgcolor: 'rgba(0,0,0,0.05)' }}
-            >
-              <Fullscreen fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          
-          <Tooltip title="크게 (95×90)">
-            <IconButton 
-              size="small"
-              onClick={() => handleSizePreset('large')}
-              sx={{ bgcolor: 'rgba(0,0,0,0.05)' }}
-            >
-              <FullscreenExit fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
+
         
         {/* 🔴 닫기 버튼 */}
         <IconButton 
@@ -817,12 +843,21 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
                         const cellStyle = getCellProperties(rowIndex, colIndex, currentSheetData).style;
                         const isHighlighted = highlightedPosition?.row === rowIndex && 
                                              highlightedPosition?.col === colIndex;
+                        const isSelected = selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
                         
                         return (
                           <TableCell 
                             key={colIndex}
+                            onClick={() => handleCellClick(rowIndex, colIndex, cell)}
                             sx={{
                               ...cellStyle,
+                              ...(isRemappingMode && {
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  bgcolor: '#e3f2fd !important',
+                                  border: '2px solid #2196f3 !important'
+                                }
+                              }),
                               ...(isHighlighted && {
                                 bgcolor: '#fff3cd !important',
                                 border: '2px solid #ff9500 !important',
@@ -833,6 +868,18 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
                                   top: 2,
                                   right: 2,
                                   fontSize: 10
+                                }
+                              }),
+                              ...(isSelected && {
+                                bgcolor: '#c8e6c9 !important',
+                                border: '3px solid #4caf50 !important',
+                                position: 'relative',
+                                '&::after': {
+                                  content: '"✅"',
+                                  position: 'absolute',
+                                  top: 2,
+                                  right: 2,
+                                  fontSize: 12
                                 }
                               }),
                               ...(rowIndex === 0 && colIndex === 0 && {
