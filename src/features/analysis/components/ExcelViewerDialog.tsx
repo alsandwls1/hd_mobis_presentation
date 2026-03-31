@@ -89,6 +89,7 @@ interface ExcelViewerDialogProps {
   isRemappingMode?: boolean; // 재매핑 모드 여부
   onCellSelect?: (cell: string, value: string | number) => void; // 셀 선택 콜백
   embedded?: boolean;
+  selectedSheet?: string; // 시트이름
 }
 
 interface ExcelSheet {
@@ -292,19 +293,70 @@ const readExcelFromUrl = async (url: string): Promise<ExcelWorkbook> => {
 };
 
 // 셀 컴포넌트
-// const SelectedCell = React.memo(({
-//   cell,
-//   rowIndex,
-//   colIndex,
-//   cellStyle,
-//   isHighlighted,
-//   isSelected,
-//   isRemappingMode,
-//   onCellClick,
-//   colSpan,
-// } : SelectedCellProps) => {
-//   return ();
-// })
+const SelectedCellInfo = React.memo(({
+  cell,
+  rowIndex,
+  colIndex,
+  cellStyle,
+  isHighlighted,
+  isSelected,
+  isRemappingMode,
+  onCellClick,
+  colSpan,
+} : SelectedCellProps) => {
+  return (
+    <TableCell 
+      key={colIndex}
+      onClick={onCellClick}
+      sx={{
+        ...cellStyle,
+        ...(isRemappingMode && {
+          cursor: 'pointer',
+          '&:hover': {
+            bgcolor: '#e3f2fd !important',
+            border: '2px solid #2196f3 !important'
+          }
+        }),
+        ...(isHighlighted && {
+          bgcolor: '#fff3cd !important',
+          border: '2px solid #ff9500 !important',
+          position: 'relative',
+          '&::after': {
+            content: '"📍"',
+            position: 'absolute',
+            top: 2,
+            right: 2,
+            fontSize: 10
+          }
+        }),
+        ...(isSelected && {
+          bgcolor: '#c8e6c9 !important',
+          border: '3px solid #4caf50 !important',
+          position: 'relative',
+          '&::after': {
+            content: '"✅"',
+            position: 'absolute',
+            top: 2,
+            right: 2,
+            fontSize: 12
+          }
+        }),
+        ...(rowIndex === 0 && colIndex === 0 && {
+          // 제목 셀 병합 효과
+          textAlign: 'center',
+          fontWeight: 'bold',
+          fontSize: 14
+        })
+      }}
+      colSpan={rowIndex === 0 && colIndex === 0 ? 7 : 1}
+    >
+      {typeof cell === 'number' ? 
+        cell.toLocaleString() : 
+        cell || ''
+      }
+    </TableCell>
+  );
+})
 
 const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({ 
   open, 
@@ -316,7 +368,8 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
   excelUrl,
   isRemappingMode = false,
   onCellSelect,
-  embedded = false
+  embedded = false,
+  selectedSheet
 }) => {
   const [zoom, setZoom] = useState(100);
   const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
@@ -402,6 +455,16 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
       loadExcel();
     }
   }, [embedded, open, excelFile, excelUrl, fileName]);
+
+  // 엑셀 sheet 이동
+  useEffect(() => {
+    if(selectedSheet && workbook) {
+      const index = workbook.sheets.findIndex(s => s.name === selectedSheet);
+      if(index >= 0 && index !== currentSheetIndex) {
+        setCurrentSheetIndex(index);
+      }
+    }
+  }, [selectedSheet, workbook]);
 
   // 📊 현재 시트 데이터 가져오기
   const currentSheetData = workbook?.sheets[currentSheetIndex]?.data || [];
@@ -690,56 +753,18 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
                   const isSelected = selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
                   
                   return (
-                    <TableCell 
+                    <SelectedCellInfo
                       key={colIndex}
-                      onClick={() => handleCellClick(rowIndex, colIndex, cell)}
-                      sx={{
-                        ...cellStyle,
-                        ...(isRemappingMode && {
-                          cursor: 'pointer',
-                          '&:hover': {
-                            bgcolor: '#e3f2fd !important',
-                            border: '2px solid #2196f3 !important'
-                          }
-                        }),
-                        ...(isHighlighted && {
-                          bgcolor: '#fff3cd !important',
-                          border: '2px solid #ff9500 !important',
-                          position: 'relative',
-                          '&::after': {
-                            content: '"📍"',
-                            position: 'absolute',
-                            top: 2,
-                            right: 2,
-                            fontSize: 10
-                          }
-                        }),
-                        ...(isSelected && {
-                          bgcolor: '#c8e6c9 !important',
-                          border: '3px solid #4caf50 !important',
-                          position: 'relative',
-                          '&::after': {
-                            content: '"✅"',
-                            position: 'absolute',
-                            top: 2,
-                            right: 2,
-                            fontSize: 12
-                          }
-                        }),
-                        ...(rowIndex === 0 && colIndex === 0 && {
-                          // 제목 셀 병합 효과
-                          textAlign: 'center',
-                          fontWeight: 'bold',
-                          fontSize: 14
-                        })
-                      }}
+                      cell={cell}
+                      rowIndex={rowIndex}
+                      colIndex={colIndex}
+                      cellStyle={cellStyle}
+                      isHighlighted={isHighlighted}
+                      isSelected={isSelected}
+                      isRemappingMode={isRemappingMode}
+                      onCellClick={() => handleCellClick(rowIndex, colIndex, cell)}
                       colSpan={rowIndex === 0 && colIndex === 0 ? 7 : 1}
-                    >
-                      {typeof cell === 'number' ? 
-                        cell.toLocaleString() : 
-                        cell || ''
-                      }
-                    </TableCell>
+                    />
                   );
                 })}
               </TableRow>

@@ -84,6 +84,7 @@ interface CellData {
 interface MaterialCostItem {
   id: string;
   category: '재료비';
+  sheetName?: string;
   구분: CellData;
   품명: CellData;
   규격: CellData;
@@ -97,6 +98,7 @@ interface MaterialCostItem {
 interface ProcessCostItem {
   id: string;
   category: '가공비';
+  sheetName?: string;
   공정: CellData;
   공정명: CellData;
   인원: CellData;
@@ -109,6 +111,7 @@ interface ProcessCostItem {
 interface OverheadCostItem {
   id: string;
   category: '경비';
+  sheetName?: string;
   기종: CellData;
   CT: CellData;
   경비: CellData;
@@ -152,6 +155,7 @@ const ParsedDataReviewPage: React.FC = () => {
   const [leftWidth, setLeftWidth] = useState(50); // 왼쪽 패널 너비 (%)
   const [isResizing, setIsResizing] = useState(false);
   const [costGroups, setCostGroups] = useState<CostGroup[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>('');
 
   // 🔧 편집 모드 상태
   const [editingCell, setEditingCell] = useState<{
@@ -449,7 +453,7 @@ const ParsedDataReviewPage: React.FC = () => {
     const demoItems: CostItem[] = [
       // 재료비
       {
-        id: '1', category: '재료비',
+        id: '1', category: '재료비', sheetName: ' 55648-98655',
         구분: { value: '소재', cell: 'B15', originalValue: '소재' },
         품명: { value: '인서트필름', cell: 'C15', originalValue: '인서트필름' },
         규격: { value: '100x50x0.5', cell: 'D15', originalValue: '100x50x0.5' },
@@ -459,7 +463,7 @@ const ParsedDataReviewPage: React.FC = () => {
         금액: { value: 120.5, cell: 'H15', originalValue: 120.5 }
       },
       {
-        id: '2', category: '재료비',
+        id: '2', category: '재료비', sheetName: ' 55648-98655',
         구분: { value: '부품', cell: 'B16', originalValue: '부품' },
         품명: { value: 'PAD-ANTINOISE', cell: 'C16', originalValue: 'PAD-ANTINOISE' },
         규격: { value: '80x40x2', cell: 'D16', originalValue: '80x40x2' },
@@ -469,7 +473,7 @@ const ParsedDataReviewPage: React.FC = () => {
         금액: { value: 85.0, cell: 'H16', originalValue: 85.0 }
       },
       {
-        id: '3', category: '재료비',
+        id: '3', category: '재료비', sheetName: ' 55648-98655',
         구분: { value: '체결재', cell: 'B17', originalValue: '체결재' },
         품명: { value: 'TAPPING-SCREW', cell: 'C17', originalValue: 'TAPPING-SCREW' },
         규격: { value: 'M5x20', cell: 'D17', originalValue: 'M5x20' },
@@ -479,7 +483,7 @@ const ParsedDataReviewPage: React.FC = () => {
         금액: { value: 45.2, cell: 'H17', originalValue: 45.2 }
       },
       {
-        id: '4', category: '재료비',
+        id: '4', category: '재료비', sheetName: ' 55648-98655',
         구분: { value: '체결재', cell: 'B18', originalValue: '체결재' },
         품명: { value: 'FASTENER CLIP', cell: 'C18', originalValue: 'FASTENER CLIP' },
         규격: { value: 'TYPE-A', cell: 'D18', originalValue: 'TYPE-A' },
@@ -490,7 +494,7 @@ const ParsedDataReviewPage: React.FC = () => {
       },
       // 가공비
       {
-        id: '5', category: '가공비',
+        id: '5', category: '가공비', sheetName: '55648-98855',
         공정: { value: 'P01', cell: 'B20', originalValue: 'P01' },
         공정명: { value: '사출성형', cell: 'C20', originalValue: '사출성형' },
         인원: { value: 2, cell: 'D20', originalValue: 2 },
@@ -499,7 +503,7 @@ const ParsedDataReviewPage: React.FC = () => {
         금액: { value: 2500, cell: 'G20', originalValue: 2500 }
       },
       {
-        id: '6', category: '가공비',
+        id: '6', category: '가공비', sheetName: '55648-98855',
         공정: { value: 'P02', cell: 'B21', originalValue: 'P02' },
         공정명: { value: '조립', cell: 'C21', originalValue: '조립' },
         인원: { value: 1, cell: 'D21', originalValue: 1 },
@@ -508,7 +512,7 @@ const ParsedDataReviewPage: React.FC = () => {
         금액: { value: 1200, cell: 'G21', originalValue: 1200 }
       },
       {
-        id: '7', category: '가공비',
+        id: '7', category: '가공비', sheetName: '55648-98855',
         공정: { value: 'P03', cell: 'B22', originalValue: 'P03' },
         공정명: { value: '검사', cell: 'C22', originalValue: '검사' },
         인원: { value: 1, cell: 'D22', originalValue: 1 },
@@ -518,14 +522,14 @@ const ParsedDataReviewPage: React.FC = () => {
       },
       // 경비
       {
-        id: '8', category: '경비',
+        id: '8', category: '경비', sheetName: '55648-98855',
         기종: { value: 'HEAD_LINING', cell: 'B25', originalValue: 'HEAD_LINING' },
         CT: { value: 45, cell: 'C25', originalValue: 45 },
         경비: { value: 333.33, cell: 'D25', originalValue: 333.33 },
         금액: { value: 15000, cell: 'E25', originalValue: 15000 }
       },
       {
-        id: '9', category: '경비',
+        id: '9', category: '경비', sheetName: '55648-98855',
         기종: { value: 'HEAD_LINING', cell: 'B26', originalValue: 'HEAD_LINING' },
         CT: { value: 30, cell: 'C26', originalValue: 30 },
         경비: { value: 283.33, cell: 'D26', originalValue: 283.33 },
@@ -565,6 +569,7 @@ const ParsedDataReviewPage: React.FC = () => {
 
   // ✅ 셀 클릭 핸들러 (Excel 하이라이트만)
   const handleCellClick = (item: CostItem, cell: string, value: string | number) => {
+    setSelectedSheet(item.sheetName || '');
     setSelectedItem(item);
     setHighlightedCell(cell);
     console.log(`🎯 Excel 셀 ${cell} 하이라이트 - 값: ${value}`);
@@ -1542,7 +1547,7 @@ const ParsedDataReviewPage: React.FC = () => {
                 {highlightedCell && (
                   <Chip
                     size="small"
-                    label={`${highlightedCell} 하이라이트`}
+                    label={`${selectedSheet} ▶ ${highlightedCell} 하이라이트`}
                     color="primary"
                   />
                 )}
@@ -1576,6 +1581,7 @@ const ParsedDataReviewPage: React.FC = () => {
               fileName={fileName}
               excelUrl={`${process.env.PUBLIC_URL}/sample_excel/${fileName}`}
               highlightedCell={highlightedCell}
+              selectedSheet={selectedSheet}
               isRemappingMode={isRemappingMode}
               onCellSelect={(newCell: string, newValue: string | number) => {
                 if(editingCell) {
