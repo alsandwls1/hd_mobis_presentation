@@ -90,9 +90,6 @@ interface ExcelViewerDialogProps {
   onCellSelect?: (cell: string, value: string | number) => void; // 셀 선택 콜백
   embedded?: boolean;
   selectedSheet?: string; // 시트이름
-  test?: any;// 테스트용
-  wookbook?: any; // 외부에서 전달받은 워크북
-  onLoadWookbook?: any; // 로딩 후 외부로 전달할 용도
 }
 
 interface ExcelSheet {
@@ -103,6 +100,7 @@ interface ExcelSheet {
 interface ExcelWorkbook {
   sheets: ExcelSheet[];
   fileName: string;
+  rawWorkbook?: any; // 원본데이터
 }
 
 // 셀 컴포넌트
@@ -229,27 +227,19 @@ const readExcelFile = async (file: File): Promise<ExcelWorkbook> => {
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        
-        const sheets: ExcelSheet[] = [];
-        
-        workbook.SheetNames.forEach((sheetName) => {
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-            header: 1,
-            defval: '',
-            raw: false
-          }) as any[][];
-          
-          sheets.push({
-            name: sheetName,
-            data: jsonData
-          });
-        });
-        
+
+        // 첫 시트만 파싱
+        const workbook = XLSX.read(data, {type:'array'});
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1, defval: '', raw: false
+        }) as any[][];
+
         resolve({
-          sheets,
-          fileName: file.name
+          sheets: [{name: firstSheetName, data: jsonData}],
+          fileName: file.name,
+          rawWorkbook: workbook
         });
       } catch (error) {
         reject(error);
@@ -268,27 +258,19 @@ const readExcelFromUrl = async (url: string): Promise<ExcelWorkbook> => {
     if (!response.ok) throw new Error('파일 다운로드 실패');
     
     const arrayBuffer = await response.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    
-    const sheets: ExcelSheet[] = [];
-    
-    workbook.SheetNames.forEach((sheetName) => {
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-        header: 1,
-        defval: '',
-        raw: false
-      }) as any[][];
-      
-      sheets.push({
-        name: sheetName,
-        data: jsonData
-      });
-    });
-    
+
+    // 첫 시트만 파싱
+    const workbook = XLSX.read(arrayBuffer, {type:'array'});
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1, defval: '', raw: false
+    }) as any[][];
+
     return {
-      sheets,
-      fileName: url.split('/').pop() || 'excel_file.xlsx'
+      sheets: [{name: firstSheetName, data: jsonData}],
+      fileName: url.split('/').pop() || '파일명 알 수 없음',
+      rawWorkbook: workbook
     };
   } catch (error) {
     throw new Error('Excel 파일 로드 실패: ' + error);
@@ -469,15 +451,38 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
     }
   }, [embedded, open, excelFile, excelUrl, fileName]);
 
-  // 엑셀 sheet 이동
+  // sheet 데이터 세팅
   useEffect(() => {
     if(selectedSheet && workbook) {
       const index = workbook.sheets.findIndex(s => s.name === selectedSheet);
-      if(index >= 0 && index !== currentSheetIndex) {
+
+      // 이미 로드된 시트일 경우, 인덱스만 변경
+      if(index >=0 && workbook.sheets[index].data.length > 0) {
         setCurrentSheetIndex(index);
+        return;
       }
+
+      // 로드 안된 시트일 경우
+      if(workbook.rawWorkbook) {
+        const worksheet = workbook.rawWorkbook.Sheets[selectedSheet];
+        if(worksheet) {
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            header:1, defval:'', raw:false
+          }) as any[][];
+
+          const newSheets = [...workbook.sheets];
+          if(index >= 0) {
+            newSheets[index].data = jsonData;
+          } else {
+            newSheets.push({name: selectedSheet, data: jsonData});
+          }
+          setWorkbook({...workbook, sheets: newSheets});
+          setCurrentSheetIndex(index >= 0 ? index : newSheets.length - 1);
+        }
+      }
+
     }
-  }, [selectedSheet, workbook]);
+  }, [selectedSheet]);
 
   // 엑셀 선택된 셀로 스크롤 이동
   useEffect(() => {
@@ -651,7 +656,7 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
   ) : (
     <>
       {/* 📁 시트 탭 */}
-      {workbook && workbook.sheets.length > 1 && (
+      {!embedded && workbook && workbook.sheets.length > 1 && (
         <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
           <Tabs 
             value={currentSheetIndex} 
