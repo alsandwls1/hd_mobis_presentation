@@ -50,7 +50,7 @@ const MainLayout: React.FC = () => {
   const handleLogout = () => {
     logout();
     // GitHub Pages 호환을 위해 hash router 방식으로 변경
-    window.location.href = '/HD_MOBIS/#/login';
+    window.location.href = '/hd_mobis_presentation/#/login';
   };
 
   // 🎯 첫 방문자 온보딩 체크
