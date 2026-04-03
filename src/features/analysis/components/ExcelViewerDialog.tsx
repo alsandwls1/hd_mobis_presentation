@@ -405,6 +405,39 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
   // 🔧 재매핑 모드 상태
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number; cell: string; value: string | number } | null>(null);
 
+  // 특정 시트 로드 및 전환
+  const loadAndSwitchSheet = (sheetName: string) => {
+    if(!workbook) return;
+
+    const index = workbook.sheets.findIndex(s => s.name === sheetName);
+
+    // 이미 로드된 시트일 경우, 인덱스만 변경
+    if(index >=0 && workbook.sheets[index].data.length > 0) {
+      setCurrentSheetIndex(index);
+      return;
+    }
+
+    // 로드 안된 시트일 경우
+    if(workbook.rawWorkbook) {
+      const worksheet = workbook.rawWorkbook.Sheets[sheetName];
+      if(worksheet) {
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          header:1, defval:'', raw:false
+        }) as any[][];
+
+        const newSheets = [...workbook.sheets];
+        if(index >= 0) {
+          newSheets[index].data = jsonData;
+        } else {
+          newSheets.push({name: sheetName, data: jsonData});
+        }
+        setWorkbook({...workbook, sheets: newSheets});
+        setCurrentSheetIndex(index >= 0 ? index : newSheets.length - 1);
+      }
+    }
+  }
+
+
   // 🗂️ 실제 Excel 파일 로드
   useEffect(() => {
     if (embedded || open) {
@@ -454,33 +487,7 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
   // sheet 데이터 세팅
   useEffect(() => {
     if(selectedSheet && workbook) {
-      const index = workbook.sheets.findIndex(s => s.name === selectedSheet);
-
-      // 이미 로드된 시트일 경우, 인덱스만 변경
-      if(index >=0 && workbook.sheets[index].data.length > 0) {
-        setCurrentSheetIndex(index);
-        return;
-      }
-
-      // 로드 안된 시트일 경우
-      if(workbook.rawWorkbook) {
-        const worksheet = workbook.rawWorkbook.Sheets[selectedSheet];
-        if(worksheet) {
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-            header:1, defval:'', raw:false
-          }) as any[][];
-
-          const newSheets = [...workbook.sheets];
-          if(index >= 0) {
-            newSheets[index].data = jsonData;
-          } else {
-            newSheets.push({name: selectedSheet, data: jsonData});
-          }
-          setWorkbook({...workbook, sheets: newSheets});
-          setCurrentSheetIndex(index >= 0 ? index : newSheets.length - 1);
-        }
-      }
-
+      loadAndSwitchSheet(selectedSheet);
     }
   }, [selectedSheet]);
 
@@ -656,11 +663,14 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
   ) : (
     <>
       {/* 📁 시트 탭 */}
-      {!embedded && workbook && workbook.sheets.length > 1 && (
+      {!embedded && workbook && workbook.rawWorkbook && workbook.rawWorkbook.SheetNames.length > 1 && (
         <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
           <Tabs 
             value={currentSheetIndex} 
-            onChange={(e, newValue) => setCurrentSheetIndex(newValue)}
+            onChange={(e, newValue) => {
+              const sheetName = workbook.rawWorkbook.SheetNames[newValue];
+              loadAndSwitchSheet(sheetName);
+            }}
             variant="scrollable"
             scrollButtons="auto"
             sx={{
@@ -673,10 +683,10 @@ const ExcelViewerDialog: React.FC<ExcelViewerDialogProps> = ({
               }
             }}
           >
-            {workbook.sheets.map((sheet, index) => (
+            {workbook.rawWorkbook.SheetNames.map((sheetName: string, index: number) => (
               <Tab 
                 key={index}
-                label={sheet.name}
+                label={sheetName}
                 icon={<TableChart sx={{ fontSize: 14 }} />}
                 iconPosition="start"
               />
