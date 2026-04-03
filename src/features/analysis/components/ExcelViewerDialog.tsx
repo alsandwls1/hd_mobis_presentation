@@ -90,6 +90,8 @@ interface ExcelViewerDialogProps {
   onCellSelect?: (cell: string, value: string | number) => void; // 셀 선택 콜백
   embedded?: boolean;
   selectedSheet?: string; // 시트이름
+  wookbook?: any; // 외부에서 전달받은 워크북
+  onLoadWookbook?: any; // 로딩 후 외부로 전달할 용도
 }
 
 interface ExcelSheet {
